@@ -38,17 +38,18 @@ class World:
             print(message.dest)
             destinations = message.dest
 
-            if len(destinations) == 0: # if target is all satellites or a single satellite
+            if type(destinations) == int: # if target is all satellites or a single satellite
                 if destinations ==0:  #broadcast
                     print(message.fs + ":BROADCAST")
                     for satellite_name in self.satellites:
-                        satellite = self.satellites[satellite_name]
-                        satellite._receive_message(message)
+                        if message.fs!=satellite_name:
+                            satellite = self.satellites[satellite_name]
+                            satellite._receive_message(message)
                 else:
                     print(message.fs + " TRANSMIT TO " + message.dest)
                     self.satellites[destinations]._receive_message(message)
 
-            else:   #target is multiple satellites but not a broadcast
+            elif(type(destinations)==list):   #target is multiple satellites but not a broadcast
                 try:
                     for destination in destinations:
                         print(message.fs + " TRANSMIT TO " + destination)
@@ -83,23 +84,20 @@ def plot_history(world):
         y_min = min(y_min, np.min(y))
         y_max = max(y_max, np.max(y))
         plt.scatter(x,y,s=1)
-    print(x_min)
-    print(x_max)
-    print(y_min)
-    print(y_max)
-    #plt.gca().set_xlim(x_min,x_max)
-    #plt.gca().set_ylim(y_min, y_max)
+    plt.gca().set_xlim(x_min,x_max)
+    plt.gca().set_ylim(y_min, y_max)
+    plt.gca().set_aspect('equal')
     plt.show()
 
 if __name__ == "__main__":
-    world = World(10)
+    world = World(.01)
     world.add_two_D_mass(5.97e24,[0,0])
-    for i in range(1):
-        x_init = np.array([0,6800e3]) + np.random.random(2)*100
-        v_init = np.array([10,0])#np.random.random(2)*1000
-        cs = 200
+    for i in range(30):
+        x_init = np.array([0,8371e3]) + np.random.random(2)*100
+        v_init = np.array([6700,0])+np.random.random(2)*1000
+        cs = .1
         world.add_satellite(i,x_init,v_init,cs)
-    for _ in range(100000):
+    for _ in range(3000):
         world.step()
     plot_history(world)
 

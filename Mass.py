@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.spatial import distance
-G = 6.67e-12 # Gravitational Constant
+G = 6.67e-11 # Gravitational Constant
 
 class TwoMassPoint:
     def __init__(self,M,x):
@@ -12,5 +12,7 @@ class TwoMassPoint:
         uv = vector/D
         acceleration = uv*self.M/(D**2)
         return acceleration
+
+
 
 

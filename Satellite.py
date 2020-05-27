@@ -44,9 +44,11 @@ class Satellite:
             u += mass.get_acceleration(self.x)
         if dt != None:
             self.x = .5*u*dt**2 +self.v* dt + self.x
+            self.v = u * dt + self.v
         elif self.env!=None:
             dt = self.env.dt
             self.x = .5*u*dt**2 +self.v*self.env.dt + self.x
+            self.v = u*dt+self.v
             #print_location_and_velocity(self.name, self.x, self.v)
         else:
             raise("No dt or environment.")
@@ -57,16 +59,24 @@ class Satellite:
             num_clock_cycles = (self.T-self.prev_T)//self.cs
             self.count += num_clock_cycles
             self.prev_T += self.cs*num_clock_cycles
+            self.transmit_message()
             self.update_locations()
 
     def calculate_distance(self,message):
-        dt = abs(message.time_stamp*message.cs - self.get_satellite_time())
+        dt = abs(message.ts*message.cs - self.get_satellite_time())
         return dt*C
+
+    def transmit_message(self):
+        return
+        message = Message(self.count,self.cs,self.name)
+        self.env.message_queue.append(message)
+
 
     def _receive_message(self, m):
         self.message_buffer.append(m)
 
     def update_locations(self):
+        #print("Updating locations")
         while(self.message_buffer):
             m = self.message_buffer.pop()
             if m.fs not in self.satellite_distances:
