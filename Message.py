@@ -1,4 +1,7 @@
 
+import numpy as np
+from scipy.spatial import distance
+import Constants
 
 class Message:
     """
@@ -13,11 +16,20 @@ class Message:
     amplitude represents the strength of the signal. For now it's irrelevant.
     from
     """
-    def __init__(self,time_stamp,cs,from_sat, send_to=0,amplitude=0):
-        self.ts=time_stamp
-        self.cs = cs
-        self.fs = from_sat
+    def __init__(self,time_stamp,cs,from_sat,start_location, send_to=0,amplitude=0):
+        self.time_stamp=time_stamp
+        self.clock_speed = cs
+        self.from_sat = from_sat
         self.dest = send_to
+        self.start_location = start_location
+    def calculate_arrival_time(self,location):
+        location_diff = distance.euclidean(self.start_location,location)
+        return (location_diff/Constants.C) + self.time_stamp
+
+
+
+
+
 
 
 
