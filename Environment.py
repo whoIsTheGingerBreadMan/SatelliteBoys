@@ -2,9 +2,14 @@ from Satellite import Satellite
 from Mass import TwoMassPoint
 from collections import deque
 import numpy as np
+import Constants
+
+debug = Constants.debug
+show_steps = Constants.show_steps
+
 class World:
 
-    def __init__(self,dt):
+    def __init__(self,dt,synchronous:bool=True):
         self.time = 0
         self.satellites = {}
         self.masses = []
@@ -12,12 +17,14 @@ class World:
         self.message_queue = deque()
         self.count = 0
         self.history = {}
+        self._synchronous = synchronous #Do not edit me
 
     def add_satellite(self,name,x_init,v_init,clock_speed):
         if name in self.satellites:
             raise("NAME ERROR")
         else:
-            print("ADDED SATELLITE " + str(name))
+            if debug:
+                print("ADDED SATELLITE " + str(name))
             self.satellites[name] = Satellite(name, x_init, v_init, self)
             self.add_to_history(name)
 
@@ -37,25 +44,32 @@ class World:
         self.time += self.dt
         #print("STEPPING STEP: " + str(self.count))
         for message in self.message_queue:
-            print(message.dest)
+            if debug:
+                print(message.dest)
             destinations = message.dest
 
             if type(destinations) == int: # if target is all satellites or a single satellite
                 if destinations ==0:  #broadcast
-                    print(message.from_sat + ":BROADCAST")
+                    if debug:
+                        print(message.from_sat + ":BROADCAST")
                     for satellite_name in self.satellites:
                         if message.from_sat!=satellite_name:
                             satellite = self.satellites[satellite_name]
-                            satellite._receive_message(message)
+                            if self._synchronous:
+                                arrival_time = message.calculate_arrival_time(satellite.x)
+                                satellite._receive_message(message,arrival_time)
+                            else:
+                                satellite._receive_message(message)
                 else:
-
-                    print(message.from_sat + " TRANSMIT TO " + message.dest)
+                    if debug:
+                        print(message.from_sat + " TRANSMIT TO " + message.dest)
                     self.satellites[destinations]._receive_message(message)
 
             elif(type(destinations)==list):   #target is multiple satellites but not a broadcast
                 try:
                     for destination in destinations:
-                        print(message.from_sat + " TRANSMIT TO " + destination)
+                        if debug:
+                            print(message.from_sat + " TRANSMIT TO " + destination)
                         self.satellites[destination]._receive_message(message)
                 except:
                     raise("NAME ERROR")
@@ -93,14 +107,16 @@ def plot_history(world):
     plt.show()
 
 if __name__ == "__main__":
-    world = World(.01)
-    world.add_two_D_mass(5.97e24,[0,0])
-    for i in range(30):
+    world = World(.01,synchronous=True)
+    world.add_two_D_mass(1,[0,0])
+    for i in range(10):
         x_init = np.array([0,8371e3]) + np.random.random(2)*100
-        v_init = np.array([6700,0])+np.random.random(2)*1000
-        cs = .1
-        world.add_satellite(i,x_init,v_init,cs)
-    for _ in range(3000):
+        v_init = np.array([50,0])+np.random.random(2)*100
+        clock_speed = .1  #in 1/frequency
+        world.add_satellite(i,x_init,v_init,clock_speed)
+    for i in range(3000):
+        if(show_steps):
+            print(i)
         world.step()
     plot_history(world)
 

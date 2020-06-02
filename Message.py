@@ -2,7 +2,7 @@
 import numpy as np
 from scipy.spatial import distance
 import Constants
-
+debug = Constants.debug
 class Message:
     """
     The message of a satellite.

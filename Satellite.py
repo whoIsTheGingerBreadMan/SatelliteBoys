@@ -7,6 +7,8 @@ from Message import Message
 from collections import deque
 import Constants
 
+debug = Constants.debug
+show_steps = Constants.show_steps
 
 def print_location_and_velocity(name,x,v):
     print("SATELLITE " + str(name) + " STARTING LOCATION: " + x.__str__() + " STARTING "
@@ -14,7 +16,7 @@ def print_location_and_velocity(name,x,v):
           + v.__str__())
 
 class Satellite:
-    def __init__(self,name,x_init,v_init,env=None):
+    def __init__(self,name,x_init,v_init,env=None,clock_speed:float=.1):
         """
         A single satellite which has a name an inital position, an initial velocity,
         and an environment... Possibly let's add a range and possible modulation with distance.
@@ -29,7 +31,7 @@ class Satellite:
         self.x = x_init
         self.v = v_init
         #print_location_and_velocity(self.name, self.x, self.v)
-        self.clock_speed = 100   #The clock speed in number of clock cycles per second
+        self.clock_speed = clock_speed   #The clock speed in number of clock cycles per second
         self.count = 0
         self.env = env
         self.T = 0
@@ -39,7 +41,8 @@ class Satellite:
         self.message_buffer = []
 
     def _step(self,dt=None,u=0):  #move in time. Do m
-        #print(self.name + ": ")
+        if debug:
+            print(self.name + ": ")
         for mass in self.env.masses:
             u += mass.get_acceleration(self.x)
         if dt != None:
@@ -49,7 +52,8 @@ class Satellite:
             dt = self.env.dt
             self.x = .5*u*dt**2 +self.v*self.env.dt + self.x
             self.v = u*dt+self.v
-            #print_location_and_velocity(self.name, self.x, self.v)
+            if debug:
+                print_location_and_velocity(self.name, self.x, self.v)
         else:
             raise("No dt or environment.")
 
@@ -59,29 +63,36 @@ class Satellite:
             num_clock_cycles = (self.T-self.prev_T)//self.clock_speed
             self.count += num_clock_cycles
             self.prev_T += self.clock_speed*num_clock_cycles
-            self.transmit_message()
+            #self.transmit_message()
             self.update_locations()
 
-    def calculate_distance(self,message):
-        dt = abs(message.time_stamp*message.clock_speed - self.get_satellite_time())
+    def calculate_distance(self,message:Message,accept_time:float=0):
+        if not accept_time:
+            dt = abs(message.time_stamp*message.clock_speed - self.get_satellite_time())
+        else:
+            dt = accept_time-message.time_stamp
         return dt*Constants.C
 
     def transmit_message(self):
-        message = Message(self.count,self.clock_speed,self.name)
+        message = Message(self.count,self.clock_speed,self.name,self.x)
         self.env.message_queue.append(message)
 
 
-    def _receive_message(self, m,accept_time):
+    def _receive_message(self, m:Message,accept_time:float):
+        if show_steps:
+            print("Receiving Message: " +self.name + " From: " + m.from_sat)
         self.message_buffer.append((m,accept_time))
 
     def update_locations(self):
         #print("Updating locations")
         while(self.message_buffer):
-            m = self.message_buffer.pop()
-            if m.fs not in self.satellite_distances:
-                print("New satellite: " + m.fs)
-                self.satellite_distances[str(m.fs)] = 0
-            self.satellite_distances[str(m.fs)] = (self.calculate_distance(m),self.count)
+            m,accept_time = self.message_buffer.pop()
+            if m.from_sat not in self.satellite_distances:
+                if(debug):
+                    print("New satellite: " + m.from_sat)
+                self.satellite_distances[str(m.from_sat)] = 0
+            self.satellite_distances[str(m.from_sat)] = (self.calculate_distance(m,accept_time),
+                                                    self.count)
             #print(self.name)
 
     def get_satellite_time(self):
@@ -90,7 +101,6 @@ class Satellite:
     def _send_signal(self,dest=0):
         time = self.get_satellite_time()
         msg = self.name + " is sending a message to " + dest + " at time " + time
-        logging.debug(msg)
         self.env.message_queue.append(Message(time,self.name,dest))
 
 
