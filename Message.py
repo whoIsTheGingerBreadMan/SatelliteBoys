@@ -3,6 +3,8 @@ import numpy as np
 from scipy.spatial import distance
 import Constants
 debug = Constants.debug
+keep_history = Constants.keep_history
+
 class Message:
     """
     The message of a satellite.

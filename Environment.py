@@ -3,9 +3,11 @@ from Mass import TwoMassPoint
 from collections import deque
 import numpy as np
 import Constants
+import Plots
 
 debug = Constants.debug
 show_steps = Constants.show_steps
+keep_history = Constants.keep_history
 
 class World:
 
@@ -19,13 +21,13 @@ class World:
         self.history = {}
         self._synchronous = synchronous #Do not edit me
 
-    def add_satellite(self,name,x_init,v_init,clock_speed):
+    def add_satellite(self,name,x_init,v_init,clock_speed,emit_rate):
         if name in self.satellites:
             raise("NAME ERROR")
         else:
             if debug:
                 print("ADDED SATELLITE " + str(name))
-            self.satellites[name] = Satellite(name, x_init, v_init, self)
+            self.satellites[name] = Satellite(name, x_init, v_init,self,clock_speed,emit_rate)
             self.add_to_history(name)
 
     def add_two_D_mass(self,M,x):
@@ -36,6 +38,7 @@ class World:
         if name not in self.history:
             self.history[name] = {'x':[],'v':[],'t':[],'dists':[]}
         self.history[name]['x'].append(self.satellites[name].x)
+        self.history[name]['v'].append(self.satellites[name].v)
 
 
 
@@ -43,7 +46,9 @@ class World:
         self.count +=1
         self.time += self.dt
         #print("STEPPING STEP: " + str(self.count))
-        for message in self.message_queue:
+        while(self.message_queue):
+            message = self.message_queue.popleft()
+
             if debug:
                 print(message.dest)
             destinations = message.dest
@@ -53,7 +58,7 @@ class World:
                     if debug:
                         print(message.from_sat + ":BROADCAST")
                     for satellite_name in self.satellites:
-                        if message.from_sat!=satellite_name:
+                        if str(message.from_sat)!=str(satellite_name):
                             satellite = self.satellites[satellite_name]
                             if self._synchronous:
                                 arrival_time = message.calculate_arrival_time(satellite.x)
@@ -83,42 +88,24 @@ class World:
             self.add_to_history(satellite_name)
 
 
-def plot_history(world):
-    import matplotlib.pyplot as plt
-    import matplotlib.patches as patches
-    fig = plt.figure()
-    x_min= 10e10
-    x_max = -10e10
-    y_min = 10e10
-    y_max = -10e10
-    for mass in world.masses:
-        plt.gca().add_patch(patches.Circle(mass.x,6371e3)) #EARTH
-    for satellite in world.history:
-        x = [x[0] for x in world.history[satellite]['x']]
-        y = [x[1] for x in world.history[satellite]['x']]
-        x_min = min(x_min,np.min(x))
-        x_max = max(x_max,np.max(x))
-        y_min = min(y_min, np.min(y))
-        y_max = max(y_max, np.max(y))
-        plt.scatter(x,y,s=1)
-    plt.gca().set_xlim(x_min,x_max)
-    plt.gca().set_ylim(y_min, y_max)
-    plt.gca().set_aspect('equal')
-    plt.show()
+
+
 
 if __name__ == "__main__":
     world = World(.01,synchronous=True)
-    world.add_two_D_mass(1,[0,0])
-    for i in range(10):
-        x_init = np.array([0,8371e3]) + np.random.random(2)*100
-        v_init = np.array([50,0])+np.random.random(2)*100
-        clock_speed = .1  #in 1/frequency
-        world.add_satellite(i,x_init,v_init,clock_speed)
-    for i in range(3000):
+    world.add_two_D_mass(1e24,[0,-8371e3])
+    for i in range(5):
+        x_init = np.array([0,0]) + np.random.randn(2)*100
+        v_init = np.array([0,0])+np.random.randn(2)*100
+        clock_speed = .05  #in 1/frequency
+        emit_rate=100
+        world.add_satellite(i,x_init,v_init,clock_speed,emit_rate)
+    for i in range(6000):
         if(show_steps):
             print(i)
         world.step()
-    plot_history(world)
+    Plots.plot_satellite_distances(world,0)
+    Plots.plot_history(world)
 
 
 

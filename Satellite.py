@@ -9,6 +9,7 @@ import Constants
 
 debug = Constants.debug
 show_steps = Constants.show_steps
+keep_history = Constants.keep_history
 
 def print_location_and_velocity(name,x,v):
     print("SATELLITE " + str(name) + " STARTING LOCATION: " + x.__str__() + " STARTING "
@@ -16,7 +17,7 @@ def print_location_and_velocity(name,x,v):
           + v.__str__())
 
 class Satellite:
-    def __init__(self,name,x_init,v_init,env=None,clock_speed:float=.1):
+    def __init__(self,name,x_init,v_init,env=None,clock_speed:float=.1,emit_rate:int=10):
         """
         A single satellite which has a name an inital position, an initial velocity,
         and an environment... Possibly let's add a range and possible modulation with distance.
@@ -39,6 +40,8 @@ class Satellite:
         self.num_steps_to_signal = 10
         self.satellite_distances = {}
         self.message_buffer = []
+        self.emit_rate = emit_rate
+        self.satellite_distances_hist = {}
 
     def _step(self,dt=None,u=0):  #move in time. Do m
         if debug:
@@ -63,24 +66,31 @@ class Satellite:
             num_clock_cycles = (self.T-self.prev_T)//self.clock_speed
             self.count += num_clock_cycles
             self.prev_T += self.clock_speed*num_clock_cycles
-            #self.transmit_message()
+            if(self.count%self.emit_rate==0):
+                self.transmit_message()
             self.update_locations()
 
     def calculate_distance(self,message:Message,accept_time:float=0):
         if not accept_time:
-            dt = abs(message.time_stamp*message.clock_speed - self.get_satellite_time())
+            sat_sent_time = message.time_stamp*message.clock_speed
+            sat_rec_time = self.get_satellite_time()
+            dt = abs(sat_sent_time - sat_rec_time)
         else:
-            dt = accept_time-message.time_stamp
+            sat_sent_time = message.time_stamp
+            sat_rec_time = (accept_time//self.clock_speed)*self.clock_speed
+            dt = abs(sat_sent_time - sat_rec_time)
         return dt*Constants.C
 
     def transmit_message(self):
-        message = Message(self.count,self.clock_speed,self.name,self.x)
+
+        message = Message(self.count*self.clock_speed,self.clock_speed,self.name,self.x)
         self.env.message_queue.append(message)
 
 
     def _receive_message(self, m:Message,accept_time:float):
         if show_steps:
-            print("Receiving Message: " +self.name + " From: " + m.from_sat)
+            pass
+            #print("Receiving Message: " +self.name + " From: " + m.from_sat)
         self.message_buffer.append((m,accept_time))
 
     def update_locations(self):
@@ -93,7 +103,15 @@ class Satellite:
                 self.satellite_distances[str(m.from_sat)] = 0
             self.satellite_distances[str(m.from_sat)] = (self.calculate_distance(m,accept_time),
                                                     self.count)
-            #print(self.name)
+            if keep_history:
+                if m.from_sat not in self.satellite_distances_hist:
+                    self.satellite_distances_hist[str(m.from_sat)] = []
+                distance = self.calculate_distance(m,accept_time)
+                self.satellite_distances_hist[str(m.from_sat)].append((distance,accept_time))
+
+
+
+                #print(self.name)
 
     def get_satellite_time(self):
         return self.clock_speed*self.count
