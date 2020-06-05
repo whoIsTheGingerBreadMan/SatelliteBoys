@@ -95,12 +95,12 @@ if __name__ == "__main__":
     world = World(.01,synchronous=True)
     world.add_two_D_mass(1e24,[0,-8371e3])
     for i in range(5):
-        x_init = np.array([0,0]) + np.random.randn(2)*100
-        v_init = np.array([0,0])+np.random.randn(2)*100
-        clock_speed = .05  #in 1/frequency
+        x_init = np.array([0,0]) + np.random.randn(2)*10
+        v_init = np.array([500,0])+np.random.randn(2)*10
+        clock_speed = .01  #in 1/frequency
         emit_rate=100
         world.add_satellite(i,x_init,v_init,clock_speed,emit_rate)
-    for i in range(6000):
+    for i in range(5000):
         if(show_steps):
             print(i)
         world.step()
