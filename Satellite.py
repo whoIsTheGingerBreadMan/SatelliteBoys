@@ -37,7 +37,7 @@ class Satellite:
         self.env = env
         self.T = 0
         self.prev_T = 0
-        self.num_steps_to_signal = 10
+        # self.num_steps_to_signal = 10
         self.satellite_distances = {}
         self.message_buffer = []
         self.emit_rate = emit_rate
