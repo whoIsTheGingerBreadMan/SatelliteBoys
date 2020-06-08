@@ -102,7 +102,7 @@ if __name__ == "__main__":
         clock_speed = .01  #in 1/frequency
         emit_rate=100
         world.add_satellite(i,x_init,v_init,clock_speed,emit_rate)
-    for i in range(6000):
+    for i in range(5000):
         if(show_steps):
             print(i)
         world.step()
