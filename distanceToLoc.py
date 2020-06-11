@@ -42,7 +42,9 @@ def get_predicted_distance(coordinates, noise=0):
     X = (coordinates - coordinates[0])
     x_true, y_true, z_true = X.transpose()
 
-    D2 = distance_matrix(coordinates, coordinates) ** 2
+    D = distance_matrix(coordinates, coordinates)
+
+    D2 = D ** 2
 
     M = np.zeros_like(D2)
     for i in range(10):
@@ -67,7 +69,7 @@ def get_predicted_distance(coordinates, noise=0):
     R, loss = Rotation.align_vectors(x_v, X)
     x_new, y_new, z_new = R.apply(x_v, inverse=True).transpose()
 
-    return x_true, y_true, x_new, y_new, loss
+    return x_true, y_true, x_new, y_new, D, D2, loss
 
 
 
@@ -96,7 +98,7 @@ if __name__ == "__main__":
     noise_base = 30
     coordinates = np.zeros((10, 3))
     coordinates[:, :2] = noise_base * np.random.randn(10, 2)
-    x_true, y_true, x_new, y_new, loss = get_predicted_distance(coordinates, noise=10)
+    x_true, y_true, x_new, y_new, D, D2, loss = get_predicted_distance(coordinates, noise=10)
 
     fig, axes = plt.subplots(1, 3)
     fig.set_size_inches((12, 12))
